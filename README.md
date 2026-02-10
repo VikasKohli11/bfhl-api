@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # BFHL API – Chitkara University Qualifier 2026
 
 This project implements the required REST APIs for the Chitkara University Qualifier Task.
@@ -100,10 +101,13 @@ This API can be deployed on:
 - Railway
 - Vercel
 
----
+
 
 ## ✅ Notes
 - Only one key is allowed per POST request.
 - Proper HTTP status codes are returned.
 - Input validation and error handling are implemented.
 - External AI integration using Google Gemini.
+# bfhl-api
+bfhl-api commands 
+
