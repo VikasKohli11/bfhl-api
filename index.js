@@ -10,6 +10,7 @@ app.use(express.json());
 const EMAIL = process.env.OFFICIAL_EMAIL;
 
 
+
 const isPrime = (n) => {
   if (n <= 1) return false;
   for (let i = 2; i * i <= n; i++) {
@@ -19,21 +20,23 @@ const isPrime = (n) => {
 };
 
 const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
-
-const lcm = (a, b) => (a * b) / gcd(a, b);
+const lcm = (a, b) => Math.abs(a * b) / gcd(a, b);
 
 
 
 app.get("/health", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     is_success: true,
     official_email: EMAIL
   });
 });
 
+
+
 app.post("/bfhl", async (req, res) => {
   try {
     const body = req.body;
+
 
     if (!body || typeof body !== "object") {
       return res.status(400).json({
@@ -62,11 +65,13 @@ app.post("/bfhl", async (req, res) => {
         });
       }
 
-      let fib = [0, 1];
-      for (let i = 2; i < value; i++) {
-        fib.push(fib[i - 1] + fib[i - 2]);
+      const fib = [];
+      let a = 0, b = 1;
+      for (let i = 0; i < value; i++) {
+        fib.push(a);
+        [a, b] = [b, a + b];
       }
-      result = value === 1 ? [0] : fib.slice(0, value);
+      result = fib;
     }
 
     else if (key === "prime") {
@@ -76,12 +81,13 @@ app.post("/bfhl", async (req, res) => {
           error: "Prime input must be an array"
         });
       }
+
       result = value.filter(
         (n) => Number.isInteger(n) && isPrime(n)
       );
     }
 
-  
+   
     else if (key === "lcm") {
       if (!Array.isArray(value) || value.length === 0) {
         return res.status(400).json({
@@ -89,6 +95,7 @@ app.post("/bfhl", async (req, res) => {
           error: "LCM input must be a non-empty array"
         });
       }
+
       result = value.reduce((acc, n) => lcm(acc, n));
     }
 
@@ -99,6 +106,7 @@ app.post("/bfhl", async (req, res) => {
           error: "HCF input must be a non-empty array"
         });
       }
+
       result = value.reduce((acc, n) => gcd(acc, n));
     }
 
@@ -110,17 +118,29 @@ app.post("/bfhl", async (req, res) => {
         });
       }
 
-      const geminiRes = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          contents: [{ parts: [{ text: value }] }]
-        }
-      );
+      try {
+        const geminiRes = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            contents: [
+              {
+                parts: [{ text: value }]
+              }
+            ]
+          }
+        );
 
-      result =
-        geminiRes.data.candidates[0].content.parts[0].text
-          .split(" ")[0]; 
+       
+        result =
+          geminiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text
+          || "No response from AI";
+
+      } catch (aiErr) {
+        console.error("Gemini error:", aiErr.response?.data || aiErr.message);
+        result = "AI service unavailable";
+      }
     }
+
 
     else {
       return res.status(400).json({
@@ -137,7 +157,7 @@ app.post("/bfhl", async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err.message);
+    console.error("Server error:", err.message);
     return res.status(500).json({
       is_success: false,
       error: "Internal server error"
@@ -146,7 +166,9 @@ app.post("/bfhl", async (req, res) => {
 });
 
 
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
